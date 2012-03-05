@@ -1,0 +1,43 @@
+<?xml version="1.0" standalone="yes"?>
+<project name="as3isolib-demo" default="swf" basedir=".">
+  <property name="asrc.dir" location="src/main/as"/>
+  <property name="deploy.dir" location="dist"/>
+  <property name="keystore" location="etc/${ant.project.name}.pfx"/>
+  <property name="PASSWORD" value="pass"/>
+
+  <property name="ooo-build.vers" value="2.5"/>
+  <ant antfile="etc/bootstrap.xml"/>
+  <import file="${user.home}/.m2/ooo-build/${ooo-build.vers}/ooo-build.xml"/>
+
+  <target name="clean" description="Removes all generated files and directories">
+    <delete dir="${deploy.dir}"/>
+  </target>
+
+  <target name="flexserver" depends="-init-ooo">
+    <maventaskdef groupId="com.threerings.ant" artifactId="actionscript" version="1.5"/>
+    <flexserver/>
+  </target>
+
+  <target name="genairkeystore" depends="-init-ooo" description="Regenerates the signing certificate. You shouldn't have to run this.">
+    <fail unless="PASSWORD" message="Define the cert password with -DPASSWORD=pass to generate a cert"/>
+    <maventaskdef groupId="com.threerings.ant" artifactId="actionscript" version="1.5"/>
+    <genairkeystore keystore="${keystore}" password="${PASSWORD}" orgname="Three Rings Design"/>
+  </target>
+
+  <target name="swf" depends="-init-ooo" description="Builds the library (.swc file)">
+    <mkdir dir="${deploy.dir}"/>
+    <mavendep pom="pom.xml" pathProp="aslib.path"/>
+    <maventaskdef groupId="com.threerings.ant" artifactId="actionscript" version="1.5"/>
+    <mxmlc srcdir="${asrc.dir}" libpath="${aslib.path}"
+      dest="${deploy.dir}/${ant.project.name}.swf" static-lrsl="true"
+      main="simple/SimpleMain.as">
+      <arg value="-swf-version=13"/>
+      <arg value="-source-path+=../src"/>
+    </mxmlc>
+  </target>
+
+  <target name="package" depends="swf">
+    <packageair keystore="${keystore}" password="${PASSWORD}" deploydir="${deploy.dir}"
+      descriptor="etc/airdesc.xml"/>
+  </target>
+</project>
